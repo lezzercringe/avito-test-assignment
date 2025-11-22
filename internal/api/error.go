@@ -1,0 +1,52 @@
+package api
+
+import (
+	"encoding/json/v2"
+	"net/http"
+
+	"go.uber.org/zap"
+)
+
+func RespondJSON(w http.ResponseWriter, v any) {
+	body, err := json.Marshal(v)
+	if err != nil {
+		zap.L().Error("failed to encode json response",
+			zap.Error(err), zap.Any("response", v))
+	}
+	w.Write(body)
+}
+
+type errorDTO struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
+}
+
+type errorResponse struct {
+	Error errorDTO `json:"error"`
+}
+
+func Error(
+	w http.ResponseWriter,
+	code int,
+	errcode string,
+	msg string,
+) {
+	w.WriteHeader(code)
+
+	resp := errorResponse{
+		Error: errorDTO{
+			Message: msg,
+			Code:    errcode,
+		},
+	}
+
+	RespondJSON(w, resp)
+}
+
+func BadRequest(w http.ResponseWriter) {
+	Error(w, http.StatusBadRequest, "bad request", "BAD_REQ")
+}
+
+func InternalServerError(w http.ResponseWriter) {
+	Error(w, http.StatusInternalServerError, "internal server error", "INTERAL_SERVER_ERROR")
+}
