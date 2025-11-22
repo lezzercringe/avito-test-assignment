@@ -48,7 +48,7 @@ func (s *TeamServiceImpl) AddTeam(ctx context.Context, req TeamView) (*TeamView,
 		return nil, fmt.Errorf("starting tx: %w", err)
 	}
 
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	usersToUpsert := make([]*users.User, 0, len(req.Members))
 	for _, member := range req.Members {
@@ -67,7 +67,7 @@ func (s *TeamServiceImpl) AddTeam(ctx context.Context, req TeamView) (*TeamView,
 		return nil, fmt.Errorf("saving team: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commiting tx: %w", err)
 	}
 

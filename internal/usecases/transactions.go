@@ -3,8 +3,8 @@ package usecases
 import "context"
 
 type TxHandle interface {
-	Commit() error
-	Rollback() error
+	Commit(context.Context) error
+	Rollback(context.Context) error
 }
 
 type TxManager interface {
