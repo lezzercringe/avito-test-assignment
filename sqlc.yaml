@@ -13,3 +13,7 @@ sql:
             go_type: "time.Time"
           - db_type: "timestamptz"
             go_type: "time.Time"
+          - db_type: "varchar[]"
+            go_type:
+              import: "github.com/jackc/pgx/v5/pgtype"
+              type: "TextArray"
