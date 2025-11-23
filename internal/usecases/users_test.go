@@ -323,7 +323,7 @@ func TestUserService_Deactivate(t *testing.T) {
 	t.Run("tx manager error", func(t *testing.T) {
 		userID := "user-1"
 
-		txManager.EXPECT().WithTx(ctx).Return(nil, nil, errors.New("tx error"))
+		txManager.EXPECT().WithTx(ctx).Return(context.TODO(), nil, errors.New("tx error"))
 
 		result, err := service.Deactivate(ctx, userID)
 

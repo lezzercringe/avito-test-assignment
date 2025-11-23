@@ -109,7 +109,7 @@ func TestTeamService_AddTeam_Error(t *testing.T) {
 	t.Run("tx manager error", func(t *testing.T) {
 		req := usecases.TeamView{Name: "test-team"}
 
-		txManager.EXPECT().WithTx(ctx).Return(nil, nil, errors.New("tx error"))
+		txManager.EXPECT().WithTx(ctx).Return(context.TODO(), nil, errors.New("tx error"))
 
 		result, err := service.AddTeam(ctx, req)
 
