@@ -3,5 +3,4 @@ postgres:
   init_timeout: 5s
 shutdown_timeout: 1s
 serve_addr: :8080
-
-
+req_timeout: 2s

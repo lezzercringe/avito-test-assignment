@@ -11,6 +11,8 @@ import (
 type Config struct {
 	Postgres        postgres.Config `yaml:"postgres"`
 	ShutdownTimeout time.Duration   `yaml:"shutdown_timeout"`
+	RequestTimeout  time.Duration   `yaml:"req_timeout"`
+	LogLevel        string          `yaml:"log_level"`
 	ServeAddr       string          `yaml:"serve_addr"`
 }
 

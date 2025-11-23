@@ -8,6 +8,8 @@ import (
 	"github.com/lezzercringe/avito-test-assignment/internal/users"
 )
 
+//go:generate mockgen -typed -destination ../../mocks/repositories.go -package mocks . teamRepository,prRepository,userRepository
+
 type teamRepository interface {
 	GetByName(ctx context.Context, name string) (*teams.Team, error)
 	GetManyByNames(ctx context.Context, names ...string) (map[string]teams.Team, error)

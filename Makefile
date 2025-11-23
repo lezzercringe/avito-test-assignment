@@ -17,3 +17,6 @@ run:
 
 lint:
 	${GOENV} go tool staticcheck ./...
+
+test:
+	${GOENV} go test ./...

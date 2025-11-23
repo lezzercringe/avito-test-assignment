@@ -93,7 +93,7 @@ FROM pull_requests pr
 JOIN reviewers r
   ON pr.id = r.pull_request_id
 WHERE r.user_id = ANY($1::varchar[])
-  -- AND pr.status = "OPEN"
+  AND pr.status = 'OPEN'
 GROUP BY pr.id, pr.name, pr.original_team_name, pr.author_id, pr.status, pr.merged_at
 ORDER BY pr.id;
 

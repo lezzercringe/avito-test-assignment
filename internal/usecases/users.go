@@ -128,6 +128,10 @@ func (s *UserServiceImpl) reassignAllPRsWithReviewers(ctx context.Context, revie
 		return fmt.Errorf("retrieving prs with reviewers: %w", err)
 	}
 
+	if len(result) == 0 {
+		return nil
+	}
+
 	teams, err := s.teamRepo.GetManyByNames(ctx, collectUniqueTeamNames(result)...)
 	if err != nil {
 		return fmt.Errorf("retrieving teams: %w", err)

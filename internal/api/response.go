@@ -20,6 +20,7 @@ const (
 )
 
 func RespondJSON(w http.ResponseWriter, v any) {
+	w.Header().Add("Content-Type", "application/json")
 	body, err := json.Marshal(v)
 	if err != nil {
 		zap.L().Error("failed to encode json response",

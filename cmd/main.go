@@ -15,6 +15,7 @@ import (
 	"github.com/lezzercringe/avito-test-assignment/internal/platform/postgres"
 	"github.com/lezzercringe/avito-test-assignment/internal/usecases"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var cfgPath string
@@ -22,20 +23,44 @@ var cfgPath string
 func init() {
 	flag.StringVar(&cfgPath, "config", "config.yaml", "config file path")
 	flag.Parse()
+
+	globalLogger, _ := zap.NewProduction()
+	zap.ReplaceGlobals(globalLogger)
 }
 
-func setupZap() *zap.Logger { return zap.L() }
+func setupZap(cfg config.Config) *zap.Logger {
+	levels := map[string]zapcore.Level{
+		"debug": zap.DebugLevel,
+		"warn":  zap.WarnLevel,
+		"info":  zap.InfoLevel,
+		"error": zap.ErrorLevel,
+		"fatal": zap.FatalLevel,
+	}
 
-func main() {
-	logger, err := zap.NewDevelopment()
+	lvl, ok := levels[cfg.LogLevel]
+	if !ok {
+		lvl = zap.InfoLevel
+	}
+
+	zapCfg := zap.NewProductionConfig()
+	zapCfg.Level.SetLevel(lvl)
+
+	logger, err := zapCfg.Build()
 	if err != nil {
 		panic(err)
 	}
 
+	return logger
+}
+
+func main() {
 	var cfg config.Config
 	if err := config.Load(cfgPath, &cfg); err != nil {
-		logger.Fatal("could not load config", zap.Error(err))
+		zap.L().Fatal("could not load config", zap.Error(err))
 	}
+
+	logger := setupZap(cfg)
+	defer logger.Sync()
 
 	pool, err := postgres.SetupPool(cfg.Postgres)
 	if err != nil {
@@ -54,6 +79,7 @@ func main() {
 	userService := usecases.NewUserService(txManager, userRepo, teamRepo, prRepo, rpicker)
 
 	r := router.New(
+		logger, cfg,
 		prs.NewHandler(prService),
 		teams.NewHandler(teamService),
 		users.NewHandler(userService),
@@ -67,9 +93,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 	defer cancel()
 
+	logger.Info("starting http server", zap.String("addr", cfg.ServeAddr))
+
 	go func() {
 		err := srv.ListenAndServe()
-		zap.L().Error("http server closed", zap.Error(err))
+		logger.Error("http server closed", zap.Error(err))
 		cancel()
 	}()
 
