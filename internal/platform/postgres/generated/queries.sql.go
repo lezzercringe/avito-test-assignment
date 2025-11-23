@@ -7,9 +7,19 @@ package generated
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const deleteAllReviewersForPRs = `-- name: DeleteAllReviewersForPRs :exec
+DELETE FROM reviewers WHERE pull_request_id = ANY($1::varchar[])
+`
+
+func (q *Queries) DeleteAllReviewersForPRs(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, deleteAllReviewersForPRs, dollar_1)
+	return err
+}
 
 const deleteReviewers = `-- name: DeleteReviewers :exec
 DELETE FROM reviewers WHERE pull_request_id = $1 AND user_id = ANY($2::varchar[])
@@ -51,6 +61,31 @@ func (q *Queries) GetManyPullRequestsByReviewerID(ctx context.Context, userID st
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getManyTeamsByNames = `-- name: GetManyTeamsByNames :many
+SELECT name FROM teams
+WHERE name = ANY($1::varchar[])
+`
+
+func (q *Queries) GetManyTeamsByNames(ctx context.Context, dollar_1 []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getManyTeamsByNames, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -100,6 +135,62 @@ func (q *Queries) GetPRReviewers(ctx context.Context, pullRequestID string) ([]s
 			return nil, err
 		}
 		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPRsWithAnyReviewers = `-- name: GetPRsWithAnyReviewers :many
+SELECT
+    pr.id,
+    pr.name,
+    pr.original_team_name,
+    pr.author_id,
+    pr.status,
+    pr.merged_at,
+    ARRAY_AGG(r.user_id)::varchar[] AS matched_reviewer_ids
+FROM pull_requests pr
+JOIN reviewers r
+  ON pr.id = r.pull_request_id
+WHERE r.user_id = ANY($1::varchar[])
+  -- AND pr.status = "OPEN"
+GROUP BY pr.id, pr.name, pr.original_team_name, pr.author_id, pr.status, pr.merged_at
+ORDER BY pr.id
+`
+
+type GetPRsWithAnyReviewersRow struct {
+	ID                 string
+	Name               string
+	OriginalTeamName   string
+	AuthorID           string
+	Status             string
+	MergedAt           pgtype.Timestamptz
+	MatchedReviewerIds []string
+}
+
+func (q *Queries) GetPRsWithAnyReviewers(ctx context.Context, dollar_1 []string) ([]GetPRsWithAnyReviewersRow, error) {
+	rows, err := q.db.Query(ctx, getPRsWithAnyReviewers, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPRsWithAnyReviewersRow
+	for rows.Next() {
+		var i GetPRsWithAnyReviewersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.OriginalTeamName,
+			&i.AuthorID,
+			&i.Status,
+			&i.MergedAt,
+			&i.MatchedReviewerIds,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -190,6 +281,54 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	var i User
 	err := row.Scan(&i.ID, &i.Name, &i.Active)
 	return i, err
+}
+
+const saveManyPullRequests = `-- name: SaveManyPullRequests :exec
+INSERT INTO pull_requests(id, name, original_team_name, author_id, status, merged_at)
+SELECT UNNEST($1::varchar[]), UNNEST($2::varchar[]), UNNEST($3::varchar[]), UNNEST($4::varchar[]), UNNEST($5::varchar[]), UNNEST($6::timestamptz[])
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    original_team_name = EXCLUDED.original_team_name,
+    author_id = EXCLUDED.author_id,
+    status = EXCLUDED.status,
+    merged_at = EXCLUDED.merged_at
+`
+
+type SaveManyPullRequestsParams struct {
+	Column1 []string
+	Column2 []string
+	Column3 []string
+	Column4 []string
+	Column5 []string
+	Column6 []time.Time
+}
+
+func (q *Queries) SaveManyPullRequests(ctx context.Context, arg SaveManyPullRequestsParams) error {
+	_, err := q.db.Exec(ctx, saveManyPullRequests,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+	)
+	return err
+}
+
+const saveManyReviewers = `-- name: SaveManyReviewers :exec
+INSERT INTO reviewers (pull_request_id, user_id)
+SELECT UNNEST($1::varchar[]), UNNEST($2::varchar[])
+ON CONFLICT (user_id, pull_request_id) DO NOTHING
+`
+
+type SaveManyReviewersParams struct {
+	Column1 []string
+	Column2 []string
+}
+
+func (q *Queries) SaveManyReviewers(ctx context.Context, arg SaveManyReviewersParams) error {
+	_, err := q.db.Exec(ctx, saveManyReviewers, arg.Column1, arg.Column2)
+	return err
 }
 
 const saveManyUsers = `-- name: SaveManyUsers :exec

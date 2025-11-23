@@ -75,3 +75,42 @@ ON CONFLICT (user_id, pull_request_id) DO NOTHING;
 
 -- name: DeleteReviewers :exec
 DELETE FROM reviewers WHERE pull_request_id = $1 AND user_id = ANY($2::varchar[]);
+
+-- name: GetManyTeamsByNames :many
+SELECT name FROM teams
+WHERE name = ANY($1::varchar[]);
+
+-- name: GetPRsWithAnyReviewers :many
+SELECT
+    pr.id,
+    pr.name,
+    pr.original_team_name,
+    pr.author_id,
+    pr.status,
+    pr.merged_at,
+    ARRAY_AGG(r.user_id)::varchar[] AS matched_reviewer_ids
+FROM pull_requests pr
+JOIN reviewers r
+  ON pr.id = r.pull_request_id
+WHERE r.user_id = ANY($1::varchar[])
+  -- AND pr.status = "OPEN"
+GROUP BY pr.id, pr.name, pr.original_team_name, pr.author_id, pr.status, pr.merged_at
+ORDER BY pr.id;
+
+-- name: SaveManyPullRequests :exec
+INSERT INTO pull_requests(id, name, original_team_name, author_id, status, merged_at)
+SELECT UNNEST($1::varchar[]), UNNEST($2::varchar[]), UNNEST($3::varchar[]), UNNEST($4::varchar[]), UNNEST($5::varchar[]), UNNEST($6::timestamptz[])
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    original_team_name = EXCLUDED.original_team_name,
+    author_id = EXCLUDED.author_id,
+    status = EXCLUDED.status,
+    merged_at = EXCLUDED.merged_at;
+
+-- name: DeleteAllReviewersForPRs :exec
+DELETE FROM reviewers WHERE pull_request_id = ANY($1::varchar[]);
+
+-- name: SaveManyReviewers :exec
+INSERT INTO reviewers (pull_request_id, user_id)
+SELECT UNNEST($1::varchar[]), UNNEST($2::varchar[])
+ON CONFLICT (user_id, pull_request_id) DO NOTHING;

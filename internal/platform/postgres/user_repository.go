@@ -89,7 +89,7 @@ func (r *UserRepository) SaveMany(ctx context.Context, u ...*users.User) (err er
 	return err
 }
 
-func (r *UserRepository) GetMany(ctx context.Context, id ...string) (result []users.User, err error) {
+func (r *UserRepository) GetMany(ctx context.Context, id ...string) (result []*users.User, err error) {
 	defer func() {
 		err = mapError(err)
 	}()
@@ -97,7 +97,7 @@ func (r *UserRepository) GetMany(ctx context.Context, id ...string) (result []us
 	queries := r.getQueries(ctx)
 
 	if len(id) == 0 {
-		return []users.User{}, nil
+		return []*users.User{}, nil
 	}
 
 	generatedUsers, err := queries.GetManyUsersByIDs(ctx, id)
@@ -105,9 +105,9 @@ func (r *UserRepository) GetMany(ctx context.Context, id ...string) (result []us
 		return nil, err
 	}
 
-	result = make([]users.User, len(generatedUsers))
+	result = make([]*users.User, len(generatedUsers))
 	for i, user := range generatedUsers {
-		result[i] = users.User{
+		result[i] = &users.User{
 			ID:     user.ID,
 			Name:   user.Name,
 			Active: user.Active,

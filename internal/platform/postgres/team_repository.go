@@ -42,9 +42,7 @@ func (r *TeamRepository) GetByName(ctx context.Context, name string) (team *team
 	}
 
 	memberIDsStr := make([]string, len(memberIDs))
-	for i, id := range memberIDs {
-		memberIDsStr[i] = id
-	}
+	copy(memberIDsStr, memberIDs)
 
 	team = &teams.Team{
 		Name:      teamName,
@@ -72,9 +70,7 @@ func (r *TeamRepository) GetByMemberID(ctx context.Context, memberID string) (te
 	}
 
 	memberIDsStr := make([]string, len(memberIDs))
-	for i, id := range memberIDs {
-		memberIDsStr[i] = id
-	}
+	copy(memberIDsStr, memberIDs)
 
 	team = &teams.Team{
 		Name:      teamName,
@@ -107,4 +103,39 @@ func (r *TeamRepository) Save(ctx context.Context, t *teams.Team) (err error) {
 	}
 
 	return nil
+}
+
+func (r *TeamRepository) GetManyByNames(ctx context.Context, names ...string) (result map[string]teams.Team, err error) {
+	defer func() {
+		err = mapError(err)
+	}()
+
+	queries := r.getQueries(ctx)
+
+	if len(names) == 0 {
+		return map[string]teams.Team{}, nil
+	}
+
+	teamNames, err := queries.GetManyTeamsByNames(ctx, names)
+	if err != nil {
+		return nil, err
+	}
+
+	result = make(map[string]teams.Team, len(teamNames))
+	for _, teamName := range teamNames {
+		memberIDs, err := queries.GetTeamMembers(ctx, teamName)
+		if err != nil {
+			return nil, err
+		}
+
+		memberIDsStr := make([]string, len(memberIDs))
+		copy(memberIDsStr, memberIDs)
+
+		result[teamName] = teams.Team{
+			Name:      teamName,
+			MemberIDs: memberIDsStr,
+		}
+	}
+
+	return result, nil
 }
