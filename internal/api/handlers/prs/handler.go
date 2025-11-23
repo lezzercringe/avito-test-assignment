@@ -98,7 +98,7 @@ func (h *Handler) merge(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errorsx.ErrNotFound):
-			api.Error(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
+			api.Error(w, http.StatusNotFound, api.CodeNotFound, "resource not found")
 		default:
 			api.InternalServerError(w)
 		}
@@ -133,9 +133,9 @@ func (h *Handler) reassign(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errorsx.ErrNotFound):
-			api.Error(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
+			api.Error(w, http.StatusNotFound, api.CodeNotFound, "resource not found")
 		case errors.Is(err, errorsx.ErrModifyMergedPR):
-			api.Error(w, http.StatusNotFound, "PR_MERGED", "cannot reassign on merged PR")
+			api.Error(w, http.StatusNotFound, api.CodePRMerged, "cannot reassign on merged PR")
 		default:
 			api.InternalServerError(w)
 		}

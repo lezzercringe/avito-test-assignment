@@ -10,13 +10,14 @@ import (
 type ErrorCode string
 
 const (
-	CodeNotFound    ErrorCode = "NOT_FOUND"
-	CodeTeamExists  ErrorCode = "TEAM_EXISTS"
-	CodePRExists    ErrorCode = "PR_EXISTS"
-	CodePRMerged    ErrorCode = "PR_MERGED"
-	CodeNotAssigned ErrorCode = "NOT_ASSIGNED"
-	CodeNoCandidate ErrorCode = "NO_CANDIDATE"
-	CodeBadRequest  ErrorCode = "BAD_REQUEST"
+	CodeNotFound            ErrorCode = "NOT_FOUND"
+	CodeTeamExists          ErrorCode = "TEAM_EXISTS"
+	CodePRExists            ErrorCode = "PR_EXISTS"
+	CodePRMerged            ErrorCode = "PR_MERGED"
+	CodeNotAssigned         ErrorCode = "NOT_ASSIGNED"
+	CodeNoCandidate         ErrorCode = "NO_CANDIDATE"
+	CodeBadRequest          ErrorCode = "BAD_REQUEST"
+	CodeInternalServerError ErrorCode = "INTERNAL_SERVER_ERROR"
 )
 
 func RespondJSON(w http.ResponseWriter, v any) {
@@ -61,5 +62,5 @@ func BadRequest(w http.ResponseWriter) {
 }
 
 func InternalServerError(w http.ResponseWriter) {
-	Error(w, http.StatusInternalServerError, "internal server error", "INTERAL_SERVER_ERROR")
+	Error(w, http.StatusInternalServerError, CodeInternalServerError, "internal server error")
 }
