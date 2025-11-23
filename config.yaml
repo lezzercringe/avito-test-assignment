@@ -1,0 +1,7 @@
+postgres:
+  conn_string: postgresql://postgres:development@postgres:5432/postgres
+  init_timeout: 5s
+shutdown_timeout: 1s
+serve_addr: :8080
+
+

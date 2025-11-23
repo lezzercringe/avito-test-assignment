@@ -13,18 +13,18 @@ var (
 	ErrModifyMergedPR             = errors.New("cannot modify merged pull request")
 	ErrNotPreviouslyAssigned      = errors.New("reviewer is not assigned to this PR")
 	ErrNoCandidate                = errors.New("no active replacement candidate in team")
-	ErrToManyReviewers            = errors.New("TODO")
-	ErrCandidateIsAlreadyReviewer = errors.New("TODO")
+	ErrToManyReviewers            = errors.New("too many reviewers per pr")
+	ErrCandidateIsAlreadyReviewer = errors.New("candidate is already a reviewer")
 )
 
 // team-specific errors
 var (
-	ErrTeamName        = errors.New("TODO")
-	ErrDuplicateMember = errors.New("TODO")
+	ErrTeamName        = errors.New("invalid team name")
+	ErrDuplicateMember = errors.New("duplicate team member")
 )
 
 // user-specific errors
 var (
-	ErrUserName = errors.New("TODO")
-	ErrUserID   = errors.New("TODO")
+	ErrUserName = errors.New("invalid user name")
+	ErrUserID   = errors.New("invalid user id")
 )

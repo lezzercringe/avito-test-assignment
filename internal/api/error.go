@@ -16,6 +16,7 @@ const (
 	CodePRMerged    ErrorCode = "PR_MERGED"
 	CodeNotAssigned ErrorCode = "NOT_ASSIGNED"
 	CodeNoCandidate ErrorCode = "NO_CANDIDATE"
+	CodeBadRequest  ErrorCode = "BAD_REQUEST"
 )
 
 func RespondJSON(w http.ResponseWriter, v any) {
@@ -39,7 +40,7 @@ type errorResponse struct {
 func Error(
 	w http.ResponseWriter,
 	code int,
-	errcode string,
+	errcode ErrorCode,
 	msg string,
 ) {
 	w.WriteHeader(code)
@@ -47,7 +48,7 @@ func Error(
 	resp := errorResponse{
 		Error: errorDTO{
 			Message: msg,
-			Code:    errcode,
+			Code:    string(errcode),
 		},
 	}
 
@@ -55,7 +56,7 @@ func Error(
 }
 
 func BadRequest(w http.ResponseWriter) {
-	Error(w, http.StatusBadRequest, "bad request", "BAD_REQ")
+	Error(w, http.StatusBadRequest, CodeBadRequest, "bad request")
 }
 
 func InternalServerError(w http.ResponseWriter) {
