@@ -19,6 +19,7 @@
 - `sqlc` - генерация типобезопасного кода из .sql файлов
 - `staticcheck` - линтер, включен в go.mod в качестве tool
 - `pressly/goose` - для миграций (sidecar)
+- `uber/mockgen` (с помощью //go:generate)
 
 # NB
 - Используется `json/v2`, в `Makefile` прописано нужное значение `GOEXPERIMENT` для корректной сборки.
