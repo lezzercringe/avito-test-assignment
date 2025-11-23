@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS teams (
 );
 
 CREATE TABLE IF NOT EXISTS memberships (
-    team_name VARCHAR(255) REFERENCES teams.name,
-    user_id VARCHAR(255) REFERENCES users.id,
+    team_name VARCHAR(255) REFERENCES teams(name),
+    user_id VARCHAR(255) REFERENCES users(id),
     PRIMARY KEY (team_name, user_id) -- implicit index on team_name
 );
 
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS pull_requests (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     original_team_name VARCHAR(255) NOT NULL,
-    author_id VARCHAR(255) REFERENCES users.id NOT NULL,
+    author_id VARCHAR(255) REFERENCES users(id) NOT NULL,
     status VARCHAR(255) NOT NULL,
     merged_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS reviewers (
-    pull_request_id VARCHAR(255) REFERENCES pull_requests.id,
-    user_id VARCHAR(255) REFERENCES users.id,
+    pull_request_id VARCHAR(255) REFERENCES pull_requests(id),
+    user_id VARCHAR(255) REFERENCES users(id),
     PRIMARY KEY (user_id, pull_request_id) -- implicit index on user_id
 );
 
