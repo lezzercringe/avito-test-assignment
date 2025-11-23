@@ -2,8 +2,10 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/lezzercringe/avito-test-assignment/internal/errorsx"
 	"github.com/lezzercringe/avito-test-assignment/internal/prs"
 	"github.com/lezzercringe/avito-test-assignment/internal/teams"
 )
@@ -30,13 +32,14 @@ type ReassignReviewerResult struct {
 	ReplacedByID string
 }
 
-type PickReviewerRequest struct {
+type PickReviewersRequest struct {
 	UserIDsToExclude []string
+	WantCount        int
 	Team             teams.Team
 }
 
 type ReviewerPicker interface {
-	PickReviewerFromTeam(ctx context.Context, req PickReviewerRequest) (string, error)
+	PickReviewersFromTeam(ctx context.Context, req PickReviewersRequest) ([]string, error)
 }
 
 var _ PullRequestService = &PullRequestServiceImpl{}
@@ -61,16 +64,21 @@ func (m *PullRequestServiceImpl) Create(ctx context.Context, req CreateRequest) 
 		AuthorID:         req.AuthorID,
 	}
 
-	pickedID, err := m.rpicker.PickReviewerFromTeam(ctx, PickReviewerRequest{
+	pickedIDs, err := m.rpicker.PickReviewersFromTeam(ctx, PickReviewersRequest{
 		UserIDsToExclude: []string{req.AuthorID},
 		Team:             *team,
+		WantCount:        2,
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, errorsx.ErrNoCandidate) {
 		return nil, fmt.Errorf("picking reviewer: %w", err)
 	}
+	if !errors.Is(err, errorsx.ErrNoCandidate) {
+		for _, id := range pickedIDs {
+			if err := pr.AssignReviewer(id); err != nil {
+				return nil, fmt.Errorf("assigning reviewer: %w", err)
+			}
+		}
 
-	if err := pr.AssignReviewer(pickedID); err != nil {
-		return nil, fmt.Errorf("assigning reviewer: %w", err)
 	}
 
 	if err := m.prRepo.Save(ctx, &pr); err != nil {
@@ -95,15 +103,16 @@ func (m *PullRequestServiceImpl) ReassignReviewer(ctx context.Context, req Reass
 		return nil, fmt.Errorf("getting original pr team: %w", err)
 	}
 
-	pickedID, err := m.rpicker.PickReviewerFromTeam(ctx, PickReviewerRequest{
+	pickedIDs, err := m.rpicker.PickReviewersFromTeam(ctx, PickReviewersRequest{
 		UserIDsToExclude: []string{req.UserIDToReassign},
+		WantCount:        1,
 		Team:             *team,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("picking new reviewer: %w", err)
 	}
 
-	if err := pr.AssignReviewer(pickedID); err != nil {
+	if err := pr.AssignReviewer(pickedIDs[0]); err != nil {
 		return nil, fmt.Errorf("assigning new reviewer: %w", err)
 	}
 
@@ -113,7 +122,7 @@ func (m *PullRequestServiceImpl) ReassignReviewer(ctx context.Context, req Reass
 
 	return &ReassignReviewerResult{
 		PR:           pr.ToView(),
-		ReplacedByID: pickedID,
+		ReplacedByID: pickedIDs[0],
 	}, nil
 }
 

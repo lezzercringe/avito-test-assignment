@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"slices"
 
+	"github.com/lezzercringe/avito-test-assignment/internal/errorsx"
 	"github.com/lezzercringe/avito-test-assignment/internal/users"
 )
 
@@ -25,17 +26,43 @@ func filter[T any](xs []T, filterFn func(T) bool) []T {
 	return filtered
 }
 
-func (r *RandomReviewerPicker) PickReviewerFromTeam(ctx context.Context, req PickReviewerRequest) (string, error) {
-	pickableIDs := filter(req.Team.MemberIDs, func(id string) bool { return !slices.Contains(req.UserIDsToExclude, id) })
+func minInt(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
 
-	coworkers, err := r.userRepo.GetMany(ctx, pickableIDs...)
-	if err != nil {
-		return "", fmt.Errorf("retrieving candidates: %w", err)
+func (r *RandomReviewerPicker) PickReviewersFromTeam(ctx context.Context, req PickReviewersRequest) ([]string, error) {
+	includedIDs := filter(
+		req.Team.MemberIDs,
+		func(id string) bool { return !slices.Contains(req.UserIDsToExclude, id) },
+	)
+
+	if len(includedIDs) == 0 {
+		return nil, errorsx.ErrNoCandidate
 	}
 
-	active := filter(coworkers, func(u users.User) bool { return u.Active })
-	ix := rand.IntN(len(active))
-	return active[ix].ID, nil
+	included, err := r.userRepo.GetMany(ctx, includedIDs...)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving candidates: %w", err)
+	}
+
+	active := filter(included, func(u *users.User) bool { return u.Active })
+	if len(active) == 0 {
+		return nil, errorsx.ErrNoCandidate
+	}
+
+	countToPick := minInt(req.WantCount, len(active))
+	pickedIDs := make([]string, 0, countToPick)
+
+	for range countToPick {
+		ix := rand.IntN(len(active))
+		pickedIDs = append(pickedIDs, active[ix].ID)
+		active = append(active[:ix], active[ix+1:]...)
+	}
+
+	return pickedIDs, nil
 }
 
 func NewRandomReviewerPicker(userRepo userRepository) *RandomReviewerPicker {
